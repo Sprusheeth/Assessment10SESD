@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ShopZone — Client-Server Demo (Amazon-style)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand:#FF9E00; /* amazon-ish orange */
+    --dark:#111;
+    --muted:#6b6b6b;
+    --card:#fff;
+    --bg:#f3f5f9;
+    --accent:#232f3e;
+  }
+  *{box-sizing:border-box}
+  body{font-family:Inter,system-ui,Arial; margin:0; background:var(--bg); color:var(--dark); -webkit-font-smoothing:antialiased}
+  header.top{
+    background:linear-gradient(90deg,var(--accent),#102027 60%);
+    color:white;
+    padding:10px 18px;
+    display:flex;
+    align-items:center;
+    gap:16px;
+    position:sticky;
+    top:0;
+    z-index:60;
+    box-shadow:0 2px 6px rgba(0,0,0,0.12);
+  }
+  .logo{
+    display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;color:white;text-decoration:none;
+  }
+  .logo .badge{background:var(--brand); color:#111; padding:4px 8px; border-radius:4px; font-weight:700}
+  .searchBar{flex:1;display:flex;align-items:center;gap:6px}
+  .searchBar input{flex:1;padding:9px 12px;border-radius:6px 0 0 6px;border:0; outline:none}
+  .searchBar button{background:#ffd699;border:1px solid rgba(0,0,0,0.06); padding:9px 14px;border-radius:0 6px 6px 0; cursor:pointer; font-weight:700}
+  nav.toplinks{display:flex;gap:14px;align-items:center}
+  nav.toplinks a{color:white;text-decoration:none;font-size:14px;padding:8px 10px;border-radius:6px}
+  .icon{background:rgba(255,255,255,0.06);padding:8px;border-radius:8px}
+  .main{max-width:1200px;margin:22px auto;padding:0 16px}
+  .hero{display:flex;gap:18px;margin-bottom:18px;align-items:center}
+  .hero .left{flex:1;background:linear-gradient(180deg,#fff,#f8fafc);padding:20px;border-radius:12px;box-shadow:0 6px 20px rgba(16,27,36,0.06)}
+  .hero h2{margin:0 0 6px 0}
+  .hero p{margin:0;color:var(--muted)}
+  .hero .cta{margin-top:12px;padding:10px 14px;background:var(--brand);color:#111;border-radius:8px;border:0;cursor:pointer;font-weight:700}
+  .layout{display:grid;grid-template-columns:230px 1fr; gap:18px}
+  .sidebar{background:var(--card);padding:14px;border-radius:10px;box-shadow:0 6px 18px rgba(16,27,36,0.04)}
+  .sidebar h4{margin:6px 0 10px 0}
+  .category{display:flex;flex-direction:column;gap:8px}
+  .category button{background:transparent;border:0;padding:8px;text-align:left;border-radius:8px;cursor:pointer}
+  .content .controls{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .product{
+    background:var(--card);
+    border-radius:10px;
+    padding:12px;
+    box-shadow:0 6px 18px rgba(16,27,36,0.04);
+    display:flex;flex-direction:column;gap:8px;
+  }
+  .product img{width:100%;height:160px;object-fit:contain;background:#fff;border-radius:8px}
+  .product h3{margin:0;font-size:15px}
+  .price{font-weight:800;font-size:16px}
+  .muted{color:var(--muted);font-size:13px}
+  .pactions{display:flex;gap:8px;margin-top:auto}
+  .btn{background:var(--accent);color:white;padding:9px;border-radius:8px;border:0;cursor:pointer;font-weight:700}
+  .btn.secondary{background:#fff;border:1px solid #ddd;color:var(--accent)}
+  .cartBadge{background:var(--brand);padding:6px 10px;border-radius:20px;color:#111;font-weight:800}
+  .overlay{position:fixed;inset:0;background:rgba(3,6,12,0.45);display:none;align-items:center;justify-content:center;z-index:90}
+  .modal{width:960px;background:#fff;border-radius:12px;padding:18px;display:flex;gap:18px;max-height:86vh;overflow:auto}
+  .detailImg{width:48%;background:#f9fafb;padding:12px;border-radius:8px}
+  .detailInfo{width:52%;display:flex;flex-direction:column;gap:10px}
+  .qtyRow{display:flex;gap:8px;align-items:center}
+  .cartBox{background:var(--card);padding:14px;border-radius:10px;box-shadow:0 6px 18px rgba(16,27,36,0.04); position:fixed; right:18px; bottom:18px; width:320px; z-index:70}
+  .cartList{max-height:220px;overflow:auto;margin-bottom:8px}
+  .cartItem{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed #eee}
+  .small{font-size:13px;color:var(--muted)}
+  .profileCard{display:flex;gap:12px;align-items:center;padding:12px;background:#fff;border-radius:10px;box-shadow:0 6px 18px rgba(16,27,36,0.04)}
+  .authBox{max-width:420px;margin:26px auto;background:#fff;padding:18px;border-radius:12px;box-shadow:0 10px 30px rgba(16,27,36,0.06)}
+  .link{color:var(--brand);cursor:pointer;font-weight:700}
+  .orderCard{background:var(--card);padding:14px;border-radius:10px;box-shadow:0 6px 18px rgba(16,27,36,0.04)}
+  .timeline{display:flex;gap:10px;align-items:center}
+  .step{flex:1;text-align:center}
+  .dot{width:14px;height:14px;border-radius:8px;margin:0 auto 6px auto;background:#eee}
+  .dot.done{background:var(--brand)}
+  .step .label{font-size:13px;color:var(--muted)}
+  @media(max-width:980px){
+    .grid{grid-template-columns:repeat(2,1fr)}
+    .layout{grid-template-columns:1fr}
+    .hero{flex-direction:column}
+    .modal{width:92%}
+    .product img{height:140px}
+  }
+  @media(max-width:640px){
+    .grid{grid-template-columns:1fr}
+    header.top{flex-wrap:wrap;padding:10px}
+    .searchBar{order:3;width:100%}
+    nav.toplinks{order:2;width:100%;justify-content:space-between}
+    .cartBox{width:92%;left:4%;right:4%}
+  }
+  .center{text-align:center}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <a class="logo" href="#" onclick="navHome()"><span style="font-size:18px">Shop</span><span class="badge">Zone</span></a>
+
+  <div class="searchBar" style="max-width:640px">
+    <input id="search" placeholder="Search products, brands and more..." oninput="renderProducts()" />
+    <button onclick="renderProducts()">Search</button>
+  </div>
+
+  <nav class="toplinks">
+    <div class="icon" id="userStatus" style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="openProfile()">
+      <span id="userGreeting">Hello, Guest</span>
+    </div>
+    <a class="icon" href="#" onclick="openOrders()" title="My Orders">Orders</a>
+    <a class="icon" href="#" onclick="toggleCart()" title="Cart">Cart <span id="cartCount" class="cartBadge" style="display:inline-block;margin-left:8px">0</span></a>
+  </nav>
+</header>
+
+<main class="main">
+  <section class="hero">
+    <div class="left">
+      <h2>Welcome to ShopZone — Realistic Client-Server Demo</h2>
+      <p class="small">Browse products, login, add to cart, checkout, and track orders — all simulated on the client as a 'mock server'. Perfect for assignments showing client-server architecture.</p>
+      <div style="margin-top:12px">
+        <button class="cta" onclick="navHome()">Shop Now</button>
+      </div>
+    </div>
+    <div style="width:360px">
+      <div class="profileCard" id="miniProfile">
+        <div style="width:64px;height:64px;background:linear-gradient(90deg,var(--brand),#f3a700);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:800;font-size:20px" id="miniAvatar">G</div>
+        <div>
+          <div id="miniName">Guest</div>
+          <div class="small">Not logged in</div>
+        </div>
+      </div>
+      <div style="height:12px"></div>
+      <div class="orderCard">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="small">Fast, simulated delivery</div>
+            <div style="font-weight:700">Order states & tracking</div>
+          </div>
+          <div style="font-size:24px;color:var(--brand)">🚚</div>
+        </div>
+        <p class="small" style="margin-top:8px">Place an order and track its live status on your profile/order page.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <h4>Categories</h4>
+      <div class="category">
+        <button onclick="filterCategory('all')">All</button>
+        <button onclick="filterCategory('electronics')">Electronics</button>
+        <button onclick="filterCategory('audio')">Audio</button>
+        <button onclick="filterCategory('camera')">Cameras</button>
+        <button onclick="filterCategory('mobile')">Mobile & Tablets</button>
+      </div>
+
+      <div style="height:14px"></div>
+      <div style="font-weight:700;margin-bottom:8px">Your Profile</div>
+      <div class="small">Login to save orders</div>
+      <div style="height:10px"></div>
+      <button class="btn" onclick="openAuth()">Login / Signup</button>
+    </aside>
+
+    <section class="content">
+      <div class="controls">
+        <div><strong id="resultCount">Products</strong></div>
+        <div class="small">Sort:
+          <select onchange="sortProducts(this.value)" id="sortSel">
+            <option value="default">Recommended</option>
+            <option value="price_asc">Price: Low → High</option>
+            <option value="price_desc">Price: High → Low</option>
+            <option value="name">Name</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="productGrid" class="grid"></div>
+    </section>
+  </div>
+</main>
+
+<div id="cartBox" class="cartBox" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <strong>Cart</strong>
+    <small class="small" onclick="toggleCart()" style="cursor:pointer">Close</small>
+  </div>
+  <div class="cartList" id="cartList"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+    <div><strong>Total:</strong> <span id="cartTotal">₹0</span></div>
+    <button class="btn" onclick="checkout()">Checkout</button>
+  </div>
+</div>
+
+<div id="overlay" class="overlay" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="detailImg" id="detailImgWrap"></div>
+    <div class="detailInfo">
+      <h2 id="detailTitle">Product Title</h2>
+      <div class="small" id="detailBrand">Brand • Category</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+        <div class="price" id="detailPrice">₹0</div>
+        <div class="muted" id="detailStock">In stock</div>
+      </div>
+      <p id="detailDesc" class="small" style="margin-top:8px"></p>
+
+      <div class="qtyRow">
+        <input id="detailQty" type="number" value="1" min="1" style="width:100px;padding:8px;border-radius:8px;border:1px solid #ddd" />
+        <button class="btn" onclick="addToCartFromDetail()">Add to Cart</button>
+        <button class="btn secondary" onclick="buyNow()">Buy Now</button>
+      </div>
+
+      <div style="margin-top:12px" class="small">
+        <strong>Delivery:</strong> Simulated delivery times shown after order placement.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="authOverlay" class="overlay" style="display:none;align-items:flex-start;padding-top:8vh">
+  <div class="authBox" onclick="event.stopPropagation()">
+    <div id="authForms">
+    </div>
+    <div style="margin-top:12px;text-align:center" class="small">By continuing you agree to the test terms of this demo</div>
+  </div>
+</div>
+
+<div id="ordersOverlay" class="overlay" style="display:none;align-items:flex-start;padding-top:6vh">
+  <div class="authBox" style="width:90%;max-width:900px" onclick="event.stopPropagation()">
+    <h3>Your Orders</h3>
+    <div id="ordersList"></div>
+    <div style="margin-top:12px;text-align:right">
+      <button class="btn secondary" onclick="closeOrders()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const MockServer = (function(){
+  const products = [
+    {id:101, name:"ASUS ROG Gaming Laptop", brand:"ASUS", category:"electronics", price:79999, stock:4, img:"https://images.unsplash.com/photo-1611078489396-4f0e458db30f?auto=format&fit=crop&w=900&q=80", desc:"High-performance gaming laptop with RTX graphics."},
+    {id:102, name:"Apple iPhone 14 (128GB)", brand:"Apple", category:"mobile", price:63999, stock:6, img:"https://images.unsplash.com/photo-1563237028-0a0f9b3a5f1b?auto=format&fit=crop&w=900&q=80", desc:"Sleek design, powerful A-series chipset."},
+    {id:103, name:"Sony WH-1000XM5 Headphones", brand:"Sony", category:"audio", price:24999, stock:8, img:"https://images.unsplash.com/photo-1518444020843-4f6b2f0d6f9a?auto=format&fit=crop&w=900&q=80", desc:"Industry-leading noise cancellation."},
+    {id:104, name:"Canon EOS 200D DSLR", brand:"Canon", category:"camera", price:45999, stock:3, img:"https://images.unsplash.com/photo-1519183071298-a2962be54a5a?auto=format&fit=crop&w=900&q=80", desc:"Compact DSLR for beginners and enthusiasts."},
+    {id:105, name:"Samsung Galaxy Tab S7", brand:"Samsung", category:"mobile", price:49999, stock:5, img:"https://images.unsplash.com/photo-1605110395942-9f32f1b77a0f?auto=format&fit=crop&w=900&q=80", desc:"10.4-inch tablet with excellent display."},
+    {id:106, name:"JBL Flip 6 Speaker", brand:"JBL", category:"audio", price:6999, stock:10, img:"https://images.unsplash.com/photo-1599947420193-1a617a8b0d30?auto=format&fit=crop&w=900&q=80", desc:"Portable Bluetooth speaker with punchy bass."},
+    {id:107, name:"Logitech Mechanical Keyboard", brand:"Logitech", category:"electronics", price:6999, stock:9, img:"https://images.unsplash.com/photo-1545239351-1141bd82e8a6?auto=format&fit=crop&w=900&q=80", desc:"Tactile mechanical switches, RGB lighting."},
+    {id:108, name:"Mi 20000mAh Power Bank", brand:"Xiaomi", category:"electronics", price:2499, stock:20, img:"https://images.unsplash.com/photo-1591000075835-b7d3d1642c13?auto=format&fit=crop&w=900&q=80", desc:"High-capacity fast charging power bank."},
+    {id:109, name:"Bose QuietComfort Earbuds", brand:"Bose", category:"audio", price:19999, stock:5, img:"https://images.unsplash.com/photo-1600180758890-3ad4a9c6fb47?auto=format&fit=crop&w=900&q=80", desc:"Comfortable earbuds with superb ANC."},
+    {id:110, name:"Google Pixel 7a", brand:"Google", category:"mobile", price:34999, stock:7, img:"https://images.unsplash.com/photo-1613814006661-6f71b2f7b35d?auto=format&fit=crop&w=900&q=80", desc:"Clean Android experience and great camera."}
+  ];
+
+  const orders = []; 
+  let nextOrderId = 1001;
+
+  function getProduct(id){ return products.find(p => p.id==id) }
+
+  return {
+    getProducts(){ return JSON.parse(JSON.stringify(products)) }, // return copy
+    getProduct(id){ return JSON.parse(JSON.stringify(getProduct(id))) },
+    placeOrder(userEmail, cartItems){
+      for (let it of cartItems){
+        let p = getProduct(it.id);
+        if (!p) return {error:"Product not found: "+it.id}
+        if (p.stock < it.qty) return {error:`Not enough stock for ${p.name}`}
+      }
+      for (let it of cartItems){
+        let p = getProduct(it.id);
+        p.stock -= it.qty;
+        const orig = products.find(x=>x.id==it.id);
+        orig.stock = p.stock;
+      }
+      const total = cartItems.reduce((s,it)=> s + (getProduct(it.id).price*it.qty),0);
+      const order = {
+        orderId: nextOrderId++,
+        userEmail,
+        items: JSON.parse(JSON.stringify(cartItems)),
+        total,
+        status: "Processing",
+        createdAt: new Date().toISOString()
+      };
+      orders.push(order);
+      return JSON.parse(JSON.stringify(order));
+    },
+    getOrdersForUser(email){ return JSON.parse(JSON.stringify(orders.filter(o=>o.userEmail==email))) },
+    getOrderById(id){ return JSON.parse(JSON.stringify(orders.find(o=>o.orderId==id))) },
+    advanceOrderStatus(orderId){
+      const o = orders.find(x=>x.orderId==orderId);
+      if (!o) return;
+      const states = ["Processing","Shipped","Out for Delivery","Delivered"];
+      const idx = states.indexOf(o.status);
+      if (idx < states.length-1) o.status = states[idx+1];
+    }
+  };
+})();
+
+const App = (function(){
+  const LS_USERS = 'shopzone_users_v1';
+  const LS_SESSION = 'shopzone_session_v1';
+
+  function loadUsers(){ try { return JSON.parse(localStorage.getItem(LS_USERS) || '[]') } catch(e){return []} }
+  function saveUsers(u){ localStorage.setItem(LS_USERS, JSON.stringify(u)) }
+
+  function getSession(){ try { return JSON.parse(localStorage.getItem(LS_SESSION) || 'null') } catch(e){return null} }
+  function saveSession(s){ localStorage.setItem(LS_SESSION, JSON.stringify(s)) }
+  function clearSession(){ localStorage.removeItem(LS_SESSION) }
+
+  let cart = [];
+
+  function el(id){ return document.getElementById(id) }
+
+  (function ensureDemoUser(){
+    let users = loadUsers();
+    if (!users.find(u=>u.email=='demo@shopzone.test')){
+      users.push({email:'demo@shopzone.test', name:'Demo User', password:'demo123'});
+      saveUsers(users);
+    }
+  })();
+
+  function signup(name,email,password){
+    let users = loadUsers();
+    if (users.find(u=>u.email==email)) return {error:"Email already registered"};
+    users.push({name,email,password});
+    saveUsers(users);
+    saveSession({email});
+    updateUserUI();
+    return {ok:true};
+  }
+  function login(email,password){
+    let users = loadUsers();
+    const u = users.find(x=>x.email==email && x.password==password);
+    if (!u) return {error:"Invalid credentials"};
+    saveSession({email});
+    updateUserUI();
+    return {ok:true};
+  }
+  function logout(){
+    clearSession();
+    cart = [];
+    updateUserUI();
+    renderCart();
+    renderProducts();
+  }
+  function getCurrentUser(){ const s=getSession(); if(!s) return null; const users=loadUsers(); return users.find(u=>u.email==s.email) || null }
+
+  function addToCart(productId, qty=1){
+    const p = MockServer.getProduct(productId);
+    if (!p) { alert("Product not found"); return }
+    const existing = cart.find(i=>i.id==productId);
+    if (existing){ existing.qty = Math.min(existing.qty + qty, 99); }
+    else cart.push({id:productId, qty});
+    saveCart();
+    renderCart();
+  }
+  function setCart(items){ cart = items; saveCart(); renderCart(); }
+  function saveCart(){ localStorage.setItem('shopzone_cart_v1', JSON.stringify(cart)) }
+  function loadCart(){ try{ cart = JSON.parse(localStorage.getItem('shopzone_cart_v1') || '[]') }catch(e){cart=[]}}
+  function clearCart(){ cart=[]; saveCart(); renderCart(); }
+
+  function renderProducts(){
+    const q = el('search').value.trim().toLowerCase();
+    let products = MockServer.getProducts();
+    const sort = el('sortSel').value;
+    if (q){
+      products = products.filter(p => (p.name+p.brand+p.desc).toLowerCase().includes(q));
+    }
+    if (currentCategory && currentCategory!='all'){
+      products = products.filter(p=>p.category==currentCategory);
+    }
+    if (sort=='price_asc') products.sort((a,b)=>a.price-b.price);
+    if (sort=='price_desc') products.sort((a,b)=>b.price-a.price);
+    if (sort=='name') products.sort((a,b)=>a.name.localeCompare(b.name));
+    el('productGrid').innerHTML = products.map(p=>`
+      <div class="product" data-id="${p.id}">
+        <img src="${p.img}" alt="${p.name}" onclick="App.openProduct(${p.id})" style="cursor:pointer" />
+        <h3 onclick="App.openProduct(${p.id})" style="cursor:pointer">${p.name}</h3>
+        <div class="small">${p.brand} • ${p.category}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="price">₹${p.price.toLocaleString()}</div>
+            <div class="muted">Stock: ${p.stock}</div>
+          </div>
+          <div style="width:110px">
+            <button class="btn" onclick="App.quickAdd(${p.id},1)">Add</button>
+            <button class="btn secondary" onclick="App.openProduct(${p.id})" style="margin-top:6px">View</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+    el('resultCount').innerText = `${products.length} products`;
+    updateCartBadge();
+  }
+
+  function openProduct(id){
+    const p = MockServer.getProduct(id);
+    if (!p) return alert("Product not found");
+    el('overlay').style.display='flex';
+    el('detailTitle').innerText = p.name;
+    el('detailBrand').innerText = `${p.brand} • ${p.category}`;
+    el('detailPrice').innerText = `₹${p.price.toLocaleString()}`;
+    el('detailStock').innerText = `Stock: ${p.stock}`;
+    el('detailDesc').innerText = p.desc;
+    el('detailQty').value = 1;
+    el('detailImgWrap').innerHTML = `<img src="${p.img}" style="width:100%;border-radius:8px;max-height:420px;object-fit:contain" />`;
+    // store active product id for actions
+    el('overlay').dataset.pid = id;
+  }
+
+  function closeModal(e){ if (e.target.id==='overlay'){ el('overlay').style.display='none'; } }
+  function closeModalImmediate(){ el('overlay').style.display='none'; }
+
+  function quickAdd(id, qty){
+    addToCart(id, qty);
+    toast("Added to cart");
+  }
+
+  function addToCartFromDetail(){
+    const pid = el('overlay').dataset.pid;
+    const qty = Number(el('detailQty').value) || 1;
+    addToCart(Number(pid), qty);
+    closeModalImmediate();
+    toast("Item added to cart");
+  }
+
+  function buyNow(){
+    const pid = Number(el('overlay').dataset.pid);
+    const qty = Number(el('detailQty').value) || 1;
+    setCart([{id:pid, qty}]);
+    closeModalImmediate();
+    checkout();
+  }
+
+  function renderCart(){
+    loadCart();
+    const list = el('cartList');
+    list.innerHTML = '';
+    let total = 0;
+    if (!cart.length) list.innerHTML = '<div class="small center">Your cart is empty</div>';
+    cart.forEach(item => {
+      const p = MockServer.getProduct(item.id);
+      if (!p) return;
+      const line = document.createElement('div');
+      line.className = 'cartItem';
+      line.innerHTML = `
+        <img src="${p.img}" style="width:56px;height:56px;object-fit:contain;border-radius:6px;background:#fff" />
+        <div style="flex:1">
+          <div style="font-weight:700">${p.name}</div>
+          <div class="small">₹${p.price.toLocaleString()} × ${item.qty}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:800">₹${(p.price*item.qty).toLocaleString()}</div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <button class="btn secondary" style="padding:6px 8px" onclick="App.changeQty(${item.id}, ${item.qty-1})">-</button>
+            <button class="btn secondary" style="padding:6px 8px" onclick="App.changeQty(${item.id}, ${item.qty+1})">+</button>
+            <button class="btn secondary" style="padding:6px 8px;background:#ffefdf;color:#000" onclick="App.removeFromCart(${item.id})">Remove</button>
+          </div>
+        </div>
+      `;
+      list.appendChild(line);
+      total += p.price * item.qty;
+    });
+    el('cartTotal').innerText = `₹${total.toLocaleString()}`;
+    updateCartBadge();
+  }
+
+  function updateCartBadge(){
+    loadCart();
+    const count = cart.reduce((s,i)=>s+i.qty,0);
+    el('cartCount').innerText = count;
+  }
+
+  function toggleCart(){
+    const box = el('cartBox');
+    if (box.style.display==='none' || box.style.display==='') { renderCart(); box.style.display='block'; } else box.style.display='none';
+  }
+  function changeQty(id, newQty){
+    loadCart();
+    const item = cart.find(x=>x.id==id);
+    if (!item) return;
+    if (newQty<=0){ cart = cart.filter(x=>x.id!=id) } else { item.qty = Math.min(99,newQty) }
+    saveCart();
+    renderCart();
+    renderProducts();
+  }
+  function removeFromCart(id){
+    cart = cart.filter(x=>x.id!=id); saveCart(); renderCart(); renderProducts();
+  }
+
+  function checkout(){
+    const user = getCurrentUser();
+    if (!user){
+      openAuth('login','Please login or signup to complete purchase.');
+      return;
+    }
+    loadCart();
+    if (!cart.length){ toast("Cart is empty"); return; }
+    const result = MockServer.placeOrder(user.email, cart);
+    if (result.error){ alert(result.error); return; }
+    clearCart();
+    saveCart();
+    toast(`Order placed! Order ID: ${result.orderId}`);
+    openOrders();
+    renderProducts();
+  }
+
+  function openOrders(){
+    const user = getCurrentUser();
+    if (!user){ openAuth('login','Login to view your orders'); return; }
+    const orders = MockServer.getOrdersForUser(user.email);
+    el('ordersList').innerHTML = orders.length ? orders.map(renderOrderCard).join('') : '<div class="small center">No orders yet</div>';
+    el('ordersOverlay').style.display='flex';
+  }
+  function closeOrders(){ el('ordersOverlay').style.display='none' }
+  function renderOrderCard(o){
+    const itemsHTML = o.items.map(it=>{
+      const p = MockServer.getProduct(it.id);
+      return `<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px dashed #eee">
+        <img src="${p.img}" style="width:64px;height:64px;object-fit:contain;border-radius:8px"/>
+        <div style="flex:1">
+          <div style="font-weight:700">${p.name}</div>
+          <div class="small">Qty: ${it.qty} • ₹${(p.price*it.qty).toLocaleString()}</div>
+        </div>
+      </div>`
+    }).join('');
+    const states = ["Processing","Shipped","Out for Delivery","Delivered"];
+    const curIdx = states.indexOf(o.status);
+    const timeline = states.map((s,i)=>`<div class="step">
+      <div class="dot ${i<=curIdx?'done':''}"></div>
+      <div class="label">${s}</div>
+    </div>`).join('');
+    return `
+      <div class="orderCard" style="margin-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>Order #${o.orderId}</strong><div class="small">Placed: ${new Date(o.createdAt).toLocaleString()}</div></div>
+          <div><strong>₹${o.total.toLocaleString()}</strong></div>
+        </div>
+        <div style="margin-top:10px">${itemsHTML}</div>
+        <div style="margin-top:8px">${timeline}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+          <div class="small">Status: <strong>${o.status}</strong></div>
+          <div>
+            <button class="btn secondary" onclick="App.track(${o.orderId})">Track</button>
+            <button class="btn" onclick="App.simAdvance(${o.orderId})">Simulate Progress</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function track(orderId){
+    const o = MockServer.getOrderById(orderId);
+    if (!o) return alert("Order not found");
+    openOrders();
+    setTimeout(()=>{ const elList = document.getElementById('ordersList'); elList.scrollTop = 9999; }, 200);
+  }
+
+  function simAdvance(orderId){
+    MockServer.advanceOrderStatus(orderId);
+    openOrders();
+    renderProducts();
+    toast("Order status advanced (server simulated)");
+  }
+
+  function openProfile(){
+    const user = getCurrentUser();
+    if (!user){ openAuth(); return; }
+    openOrders();
+  }
+
+  function openAuth(mode='login', message=''){
+    el('authOverlay').style.display='flex';
+    const html = `
+      <div style="display:flex;gap:12px;align-items:center">
+        <div style="width:64px;height:64px;background:linear-gradient(90deg,var(--brand),#f3a700);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#111;font-weight:800;font-size:20px">U</div>
+        <div>
+          <div style="font-weight:800">${mode=='login'?'Welcome back':'Create your account'}</div>
+          <div class="small">${message}</div>
+        </div>
+      </div>
+      <div style="height:12px"></div>
+      ${mode=='login'?`
+      <div>
+        <label class="small">Email</label>
+        <input id="authEmail" type="email" placeholder="you@example.com" />
+        <label class="small">Password</label>
+        <input id="authPass" type="password" placeholder="password" />
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" onclick="App.handleLogin()">Login</button>
+          <button class="btn secondary" onclick="App.showSignup()">Sign up</button>
+        </div>
+      </div>`:
+      `
+      <div>
+        <label class="small">Full name</label>
+        <input id="authName" placeholder="Your name" />
+        <label class="small">Email</label>
+        <input id="authEmail" type="email" placeholder="you@example.com" />
+        <label class="small">Password</label>
+        <input id="authPass" type="password" placeholder="password" />
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" onclick="App.handleSignup()">Create account</button>
+          <button class="btn secondary" onclick="App.showLogin()">Back to login</button>
+        </div>
+      </div>
+      `}
+      <div style="height:8px"></div>
+      <div class="small">Use demo account <strong>demo@shopzone.test</strong> / <strong>demo123</strong></div>
+    `;
+    el('authForms').innerHTML = html;
+  }
+  function closeAuth(){ el('authOverlay').style.display='none' }
+
+  function toast(msg, timeout=1800){
+    const t = document.createElement('div');
+    t.style.position='fixed'; t.style.right='18px'; t.style.bottom='110px'; t.style.background='rgba(0,0,0,0.8)';
+    t.style.color='#fff'; t.style.padding='10px 14px'; t.style.borderRadius='10px'; t.style.zIndex=200; t.style.fontWeight=700;
+    t.innerText = msg;
+    document.body.appendChild(t);
+    setTimeout(()=>{ t.style.transition='200ms'; t.style.opacity=0; setTimeout(()=>t.remove(),220) }, timeout);
+  }
+
+  function navHome(){ closeAuth(); closeOrders(); toggleCartOff(); el('overlay').style.display='none'; window.scrollTo({top:0,behavior:'smooth'}) }
+
+  function toggleCartOff(){ const box = el('cartBox'); box.style.display='none' }
+
+  function updateUserUI(){
+    const u = getCurrentUser();
+    if (!u){
+      el('userGreeting').innerText = 'Hello, Guest';
+      el('miniName').innerText = 'Guest';
+      el('miniAvatar').innerText = 'G';
+      el('miniProfile').querySelector('.small').innerText = 'Not logged in';
+      return;
+    }
+    el('userGreeting').innerText = 'Hi, '+ (u.name.split(' ')[0] || u.name);
+    el('miniName').innerText = u.name;
+    el('miniAvatar').innerText = u.name[0].toUpperCase();
+    el('miniProfile').querySelector('.small').innerText = u.email;
+  }
+
+  return {
+    init(){
+      loadCart();
+      renderProducts();
+      updateUserUI();
+    },
+    openProduct(id){ openProduct(id) },
+    quickAdd(id,qty){ quickAdd(id,qty) },
+    addToCartFromDetail(){ addToCartFromDetail() },
+    buyNow(){ buyNow() },
+    placeOrder(){ checkout() },
+    openAuth(mode,msg){ openAuth(mode,msg) },
+    closeAuth(){ closeAuth() },
+    handleLogin(){ 
+      const email = el('authEmail').value.trim(); const pass = el('authPass').value;
+      const r = login(email,pass);
+      if (r.error){ alert(r.error); } else { closeAuth(); updateUserUI(); toast("Logged in"); }
+    },
+    handleSignup(){
+      const name = el('authName').value.trim(); const email = el('authEmail').value.trim(); const pass = el('authPass').value;
+      if (!name || !email || !pass) return alert("Fill all fields");
+      const r = signup(name,email,pass);
+      if (r.error) alert(r.error); else { closeAuth(); toast("Account created & logged in"); }
+    },
+    showSignup(){ openAuth('signup') },
+    showLogin(){ openAuth('login') },
+    logout(){ logout(); toast("Logged out") },
+    changeQty(id,q){ changeQty(id,q) },
+    removeFromCart(id){ removeFromCart(id) },
+    checkout(){ checkout() },
+    track(orderId){ track(orderId) },
+    simAdvance(orderId){ simAdvance(orderId) },
+    openOrders(){ openOrders() }
+  }
+})();
+
+function navHome(){ App.init(); }
+function filterCategory(cat){ currentCategory = cat; App.init(); renderProducts(); }
+function sortProducts(v){ renderProducts(); }
+function openAuth(mode){ App.openAuth(mode) }
+function openProfile(){ App.openOrders() }
+function toggleCart(){ const box=document.getElementById('cartBox'); if (box.style.display==='none'||box.style.display===''){ App.init(); document.getElementById('cartBox').style.display='block'} else document.getElementById('cartBox').style.display='none' }
+function updateCartBadge(){ App.init() }
+
+window.App = {
+  openProduct: (id)=>App.openProduct(id),
+  quickAdd: (id,qty)=>App.quickAdd(id,qty),
+  changeQty: (id,q)=>App.changeQty(id,q),
+  removeFromCart: (id)=>App.removeFromCart(id),
+  handleLogin: ()=>App.handleLogin(),
+  handleSignup: ()=>App.handleSignup(),
+  showSignup: ()=>App.showSignup(),
+  showLogin: ()=>App.showLogin(),
+  simAdvance: (id)=>App.simAdvance(id),
+  track: (id)=>App.track(id),
+  openOrders: ()=>App.openOrders(),
+  logout: ()=>App.logout(),
+  openAuth: (m,txt)=>App.openAuth(m,txt),
+  buyNow: ()=>App.buyNow()
+};
+
+function addToCartFromDetail(){ App.addToCartFromDetail(); }
+function buyNow(){ App.buyNow(); }
+
+let currentCategory = 'all';
+
+App.init();
+
+document.getElementById('authOverlay').addEventListener('click', ()=>document.getElementById('authOverlay').style.display='none');
+document.getElementById('ordersOverlay').addEventListener('click', ()=>document.getElementById('ordersOverlay').style.display='none');
+
+</script>
+</body>
+</html>
